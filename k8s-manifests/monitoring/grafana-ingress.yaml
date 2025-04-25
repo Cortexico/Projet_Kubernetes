@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  namespace: monitoring
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned-issuer
+  # Annotations might be needed depending on specific nginx-ingress configurations,
+  # but spec.ingressClassName is the standard way.
+  # annotations:
+  #   kubernetes.io/ingress.class: nginx # This is commented out, but we keep it for reference
+spec:
+  tls:
+  - hosts:
+    - grafana.localdev.me
+    secretName: grafana-tls-secret
+  ingressClassName: nginx
+  rules:
+  - host: grafana.localdev.me
+    http:
+      paths:
+      - path: /
+        pathType: Prefix # Or ImplementationSpecific depending on controller version/config
+        backend:
+          service:
+            name: prom-stack-grafana # Assumed Grafana service name
+            port:
+              number: 80 # Assumed Grafana service port (often targets port 3000 internally)

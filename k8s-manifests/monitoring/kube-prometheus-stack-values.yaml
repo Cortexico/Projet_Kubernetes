@@ -1,0 +1,70 @@
+# Custom values for kube-prometheus-stack Helm chart - Adjusted for Minikube
+
+# Disable Grafana Ingress (will be configured separately)
+grafana:
+  enabled: true
+  ingress:
+    enabled: false # Disabled for now
+    # hosts:
+    #   - grafana.local
+    # tls:
+    #   - secretName: grafana-tls-secret
+    #     hosts:
+    #       - grafana.local
+  # Keep Grafana persistence disabled for now to save resources
+  # persistence:
+  #   enabled: false
+  # Set lower resource limits for Grafana
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Prometheus Configuration
+prometheus:
+  prometheusSpec:
+    # Enable persistence for Prometheus - uses default StorageClass
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 8Gi # Reduced size for Minikube
+    # Set lower resource limits for Prometheus
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi # Reduced limit for Minikube
+
+# Alertmanager Configuration
+alertmanager:
+  alertmanagerSpec:
+    # Enable persistence for Alertmanager - uses default StorageClass
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi # Reduced size for Minikube
+    # Optional: Lower resources if needed, defaults are usually okay
+    # resources:
+    #   requests:
+    #     cpu: 50m
+    #     memory: 64Mi
+    #   limits:
+    #     cpu: 100m
+    #     memory: 128Mi
+
+# Disable components not strictly needed for basic Minikube monitoring
+thanosRuler:
+  enabled: false
+
+# Other components like kube-state-metrics, node-exporter are enabled by default and generally useful.

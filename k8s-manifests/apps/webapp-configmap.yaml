@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webapp-config
+data:
+  DATABASE_HOST: "database-service"
+  DATABASE_PORT: "3306"
+  DATABASE_NAME: "sampledb"

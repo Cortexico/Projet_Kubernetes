@@ -1,0 +1,53 @@
+# values.yaml for Bitnami MariaDB Galera Helm Chart (mariadb-galera)
+
+# Number of replicas in the Galera cluster for High Availability
+replicaCount: 3
+
+# Database authentication parameters
+auth:
+  # Name of the database to create (matches previous setup)
+  database: sampledb
+  # Name of the user to create (matches previous setup)
+  username: sampleuser
+
+  # Use the existing Secret named 'database-secret' for credentials
+  existingSecret: database-secret
+
+  # Key within 'database-secret' containing the root user password
+  # We are using the same password as the application user based on the provided secret.
+  # The chart typically expects 'mariadb-root-password', but we specify the key from our secret.
+  rootPasswordSecretKey: DB_PASSWORD
+
+  # Key within 'database-secret' containing the application user password
+  # The chart typically expects 'mariadb-password', but we specify the key from our secret.
+  passwordSecretKey: DB_PASSWORD
+
+# Persistence configuration
+persistence:
+  # Enable persistence for database data
+  enabled: true
+
+  # Specify storage class (e.g., "local-path" common in Minikube).
+  # If commented out or set to "-", it uses the default StorageClass.
+  storageClass: local-path
+
+  # Size of the persistent volume claim
+  size: 8Gi # Adjust size as needed
+
+# Optional: Specify image registry and tag if needed, otherwise defaults will be used.
+# image:
+#   registry: docker.io
+#   repository: bitnami/mariadb-galera
+#   tag: <specific version>
+
+# Optional: Configure service type (defaults to ClusterIP)
+# service:
+#   type: ClusterIP
+
+rootUser:
+  password: mariadb-root-password
+
+mariadb:
+  db: mydb
+  user: myuser
+  password: mypassword
