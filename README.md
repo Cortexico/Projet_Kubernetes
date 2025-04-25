@@ -112,6 +112,12 @@ Le sujet demande explicitement un cluster avec 1 control plane et 2 à 3 workers
 
 Pour un usage local ou pédagogique, Minikube reste le plus simple, mais pour répondre strictement au cahier des charges, il est recommandé d'utiliser Kind, k3d ou kubeadm pour simuler ou déployer un cluster multi-nœuds.
 
+### À propos de MetalLB et des environnements on-premise
+
+Le sujet de projet demande l'installation de MetalLB uniquement dans le cas d'un cluster "on-premise" (sur des VM ou serveurs physiques, hors cloud/minikube).
+Dans notre projet, le test de la présence de MetalLB est intégré pour couvrir ce cas, mais il n'est pas utilisé ni nécessaire dans le contexte Minikube/local, car Minikube gère déjà l'exposition des services de type LoadBalancer.
+Pour une future migration vers un cluster multi-nœuds sur des VM (cf. kubeadm, Kind, k3d), l'installation de MetalLB sera indispensable pour permettre l'accès aux services externes via des adresses IP.
+
 ## Structure du projet
 - `run_all.sh` : script global de build/déploiement/vérification
 - `verif_deploiement.sh` : vérification automatisée
