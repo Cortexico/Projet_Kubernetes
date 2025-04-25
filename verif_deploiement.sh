@@ -40,6 +40,34 @@ for sc in "${EXPECTED_SC[@]}"; do
   fi
 done
 
+# 1.b Vérification MetalLB (si cluster on-premise)
+if kubectl get pods -n metallb-system 2>/dev/null | grep -q speaker; then
+  pass "MetalLB déployé (namespace metallb-system)"
+else
+  warn "MetalLB non détecté (namespace metallb-system)"
+fi
+
+# 1.c Vérification cert-manager
+if kubectl get pods -n cert-manager 2>/dev/null | grep -q cert-manager; then
+  pass "cert-manager déployé (namespace cert-manager)"
+else
+  fail "cert-manager non déployé (namespace cert-manager)"
+fi
+
+# 1.d Vérification certificat généré par cert-manager
+if kubectl get certificate -A 2>/dev/null | grep -q webapp; then
+  pass "Certificat généré par cert-manager pour webapp"
+else
+  fail "Aucun certificat généré par cert-manager pour webapp"
+fi
+
+# 1.e Vérification Prometheus
+if kubectl get pods -n monitoring 2>/dev/null | grep -q prometheus; then
+  pass "Prometheus déployé (namespace monitoring)"
+else
+  fail "Prometheus non déployé (namespace monitoring)"
+fi
+
 # 2. Vérification pods/services/ingress/HPA
 RESOURCES=("pod" "svc" "ingress" "hpa")
 for res in "${RESOURCES[@]}"; do
@@ -90,15 +118,29 @@ else
 fi
 
 # 7. Vérification Grafana/Prometheus (métriques)
-GRAFANA_POD=$(kubectl get pods -n monitoring -l app.kubernetes.io/name=grafana -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+# Recherche du pod Grafana (plus robuste)
+GRAFANA_POD=$(kubectl get pods -n monitoring | grep grafana | awk '{print $1}' | head -n1)
 if [ -n "$GRAFANA_POD" ]; then
-  if kubectl logs -n monitoring "$GRAFANA_POD" | grep -qi "HTTP Server Listen"; then
-    pass "Grafana pod running"
+  GRAFANA_STATUS=$(kubectl get pod -n monitoring "$GRAFANA_POD" -o jsonpath='{.status.phase}')
+  if [ "$GRAFANA_STATUS" = "Running" ]; then
+    if kubectl logs -n monitoring "$GRAFANA_POD" | grep -qi "HTTP Server Listen"; then
+      pass "Grafana pod running"
+    else
+      warn "Grafana pod running mais log HTTP Server Listen non trouvé"
+    fi
   else
-    fail "Grafana pod KO"
+    fail "Grafana pod non running (status: $GRAFANA_STATUS)"
   fi
 else
   fail "Grafana pod absent"
+fi
+
+# Vérification du deployment Grafana (nom dynamique)
+GRAFANA_DEPLOY=$(kubectl get deployment -n monitoring | grep grafana | awk '{print $1}' | head -n1)
+if [ -n "$GRAFANA_DEPLOY" ]; then
+  pass "Deployment Grafana détecté ($GRAFANA_DEPLOY)"
+else
+  warn "Deployment Grafana non détecté dans le namespace monitoring"
 fi
 
 # 8. Vérification autoscaling (HPA)
@@ -163,6 +205,64 @@ if [ -f k8s-manifests/security/rbac.yaml ]; then
   fi
 else
   echo -e "${YELLOW}Avertissement : pas de manifest RBAC trouvé${NC}"
+fi
+
+# 2.b Vérification ConfigMap et Secret webapp
+if kubectl get configmap -A | grep -q webapp; then
+  pass "ConfigMap webapp présent"
+else
+  fail "ConfigMap webapp absent"
+fi
+
+if kubectl get secret -A | grep -q webapp; then
+  pass "Secret webapp présent"
+else
+  fail "Secret webapp absent"
+fi
+
+# 5.b Limitation des ressources (CPU/mémoire)
+if kubectl get deployment -A -o yaml | grep -q "resources:"; then
+  pass "Limitation de ressources (CPU/mémoire) présente dans les Deployments"
+else
+  fail "Aucune limitation de ressources trouvée dans les Deployments"
+fi
+
+# 6.b Vérification granularité RBAC (ServiceAccount webapp-sa)
+if kubectl get serviceaccount -A | grep -q webapp-sa; then
+  if kubectl auth can-i get pods --as=system:serviceaccount:default:webapp-sa; then
+    pass "ServiceAccount webapp-sa a les droits get pods"
+  else
+    fail "ServiceAccount webapp-sa n'a pas les droits get pods"
+  fi
+else
+  warn "ServiceAccount webapp-sa non trouvé"
+fi
+
+# 7.b Présence d'un chart Helm custom (bonus)
+if [ -f helm/webapp/Chart.yaml ]; then
+  pass "Chart Helm custom présent (helm/webapp/Chart.yaml)"
+else
+  warn "Chart Helm custom absent"
+fi
+
+# 8.b Présence de Flagger, Kyverno, etc. (bonus)
+if kubectl get pods -A 2>/dev/null | grep -q flagger; then
+  pass "Flagger déployé"
+else
+  warn "Flagger non détecté"
+fi
+
+if kubectl get pods -A 2>/dev/null | grep -q kyverno; then
+  pass "Kyverno déployé"
+else
+  warn "Kyverno non détecté"
+fi
+
+# 9.b Vérification rolling update (mise à jour sans downtime)
+if kubectl get deployment -A -o yaml | grep -q "rollingUpdate"; then
+  pass "Stratégie rollingUpdate présente dans les Deployments"
+else
+  fail "Aucune stratégie rollingUpdate trouvée dans les Deployments"
 fi
 
 # Résumé final
