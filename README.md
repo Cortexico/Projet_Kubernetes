@@ -21,6 +21,31 @@ Ce projet met en œuvre un déploiement Kubernetes complet d'une application mul
 - Ingress + TLS
 - RBAC
 
+### Schéma d'architecture multi-composants
+
+L'architecture ci-dessous illustre les différents composants déployés sur le cluster Kubernetes et leurs interactions :
+
+```mermaid
+flowchart TD
+    subgraph Ingress
+        A[webapp.localdev.me] --> B(Web-app Service)
+        C[grafana.localdev.me] --> D(Grafana Service)
+    end
+
+    B --> E[web-app Pod]
+    B --> F[sample-app Pod]
+    E --> G[(MariaDB Galera Cluster)]
+    F --> G
+    G -.-> H[NFS (StorageClass)]
+    D --> I[Grafana Pod]
+    I --> J[Prometheus Pod]
+    J --> K[web-app Pod]
+    J --> F
+
+    classDef ingress fill:#f9f,stroke:#333,stroke-width:2px;
+    class A,C ingress;
+```
+
 ## Procédure de lancement locale (Minikube)
 
 ### 1. Prérequis
@@ -75,6 +100,17 @@ Pour une stack "production-ready" ou cloud, il faudra :
 - Utiliser le StorageClass `nfs-csi` pour tous les PVC partagés
 - Supprimer tout usage de hostPath
 - Adapter les manifests pour pointer sur le StorageClass cloud-native
+
+### Aller plus loin : cluster multi-nœuds (1 control plane, 2-3 workers)
+
+Le sujet demande explicitement un cluster avec 1 control plane et 2 à 3 workers. Minikube ne permet pas nativement ce mode (sauf expérimental), mais il existe plusieurs solutions pour déployer un cluster multi-nœuds sur une seule machine ou sur plusieurs VM :
+
+- **Kind (Kubernetes in Docker)** : permet de simuler plusieurs nœuds (control-plane et workers) dans des conteneurs Docker. [Voir la doc Kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
+- **k3d (K3s in Docker)** : permet aussi de simuler un cluster multi-nœuds très léger. [Voir la doc k3d](https://k3d.io/)
+- **kubeadm** : pour un vrai cluster sur plusieurs VM (physiques ou virtuelles), en installant manuellement chaque nœud.
+- **Cloud providers** : GKE, EKS, AKS, etc. permettent de créer des clusters multi-nœuds en quelques clics.
+
+Pour un usage local ou pédagogique, Minikube reste le plus simple, mais pour répondre strictement au cahier des charges, il est recommandé d'utiliser Kind, k3d ou kubeadm pour simuler ou déployer un cluster multi-nœuds.
 
 ## Structure du projet
 - `run_all.sh` : script global de build/déploiement/vérification
