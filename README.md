@@ -34,9 +34,9 @@ flowchart TD
 
     B --> E[web-app Pod]
     B --> F[sample-app Pod]
-    E --> G[(MariaDB Galera Cluster)]
+    E --> G[MariaDB Galera Cluster]
     F --> G
-    G -.-> H[NFS (StorageClass)]
+    G --> H[NFS StorageClass]
     D --> I[Grafana Pod]
     I --> J[Prometheus Pod]
     J --> K[web-app Pod]
